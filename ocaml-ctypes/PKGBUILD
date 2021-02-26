@@ -1,0 +1,55 @@
+#Maintainer: kevall474 <kevall474@tuta.io> <https://github.com/kevall474>
+#Credits: Evangelos Foutras <evangelos@foutrelis.com>
+#Credits: Armin K. <krejzi at email dot com>
+
+#######################################
+
+#Set compiler to build spirv package
+#Set '1' to build with GCC
+#Set '2' to build with CLANG
+#Default is empty. It will build with GCC. To build with different compiler just use : env _compiler=(1 or 2) makepkg -s
+if [ -z ${_compiler+x} ]; then
+  _compiler=2
+fi
+
+#######################################
+
+pkgname=ocaml-ctypes
+pkgver=0.17.1
+pkgrel=1
+pkgdesc="Library for binding to C libraries using pure OCaml"
+arch=('x86_64')
+url="https://github.com/ocamllabs/ocaml-ctypes"
+license=('MIT')
+depends=('ocaml' 'libffi' 'ocaml-integers')
+makedepends=('ocaml-findlib' 'ocaml-compiler-libs')
+options=('!strip' '!makeflags')
+source=($pkgname-$pkgver.tar.gz::https://github.com/ocamllabs/ocaml-ctypes/archive/$pkgver.tar.gz)
+sha512sums=('SKIP')
+
+build() {
+if [[ $_compiler = "1" ]]; then
+  export CC="gcc -m64"
+  export CXX="g++ -m64"
+elif [[ $_compiler = "2" ]]; then
+  export CC="clang -m64"
+  export CXX="clang++ -m64"
+else
+  export CC="gcc -m64"
+  export CXX="g++ -m64"
+fi
+
+  cd "$srcdir/$pkgname-$pkgver"
+  make
+}
+
+package() {
+  cd "$srcdir/$pkgname-$pkgver"
+
+  local _destdir="$pkgdir$(ocamlfind printconf destdir)"
+  install -d "$_destdir/stublibs"
+
+  make OCAMLFIND_DESTDIR="$_destdir" install
+
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

@@ -1,0 +1,7 @@
+llvm (llvm-git from my repo) (remove pkgver from ocaml package) 
+
+ocaml-ctypes (remove pkgver from ocaml package)  
+
+ocaml-findlib (remove pkgver from ocaml package)  
+
+ocaml-git (bump to git version)

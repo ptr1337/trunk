@@ -1,0 +1,59 @@
+#Maintainer: kevall474 <kevall474@tuta.io> <https://github.com/kevall474
+#Credits: Alexander F. Rødseth <xyproto@archlinux.org>
+#Credits: Lukas Fleischer <lfleischer@archlinux.org>
+#Credits: Thomas S Hatch <thatch45@gmail.com>
+#Credits: Sebastian Wiesner <lunaryorn@googlemail.com>
+#Credits: Benjamin Andresen <benny@klapmuetz.org>
+#Credits: scj <scj@archlinux.us>
+#Credits: Alif <alive4ever@live.com>
+
+#######################################
+
+#Set compiler to build spirv package
+#Set '1' to build with GCC
+#Set '2' to build with CLANG
+#Default is empty. It will build with GCC. To build with different compiler just use : env _compiler=(1 or 2) makepkg -s
+if [ -z ${_compiler+x} ]; then
+  _compiler=
+fi
+
+#######################################
+
+pkgname=ocaml-findlib
+pkgver=1.8.1
+pkgrel=1
+pkgdesc='OCaml package manager'
+arch=(x86_64)
+url='http://projects.camlcity.org/projects/findlib.html'
+license=(MIT)
+depends=('ocaml-compiler-libs' 'ocaml')
+source=("http://download.camlcity.org/download/findlib-$pkgver.tar.gz")
+sha256sums=('SKIP')
+options=(staticlibs !strip zipman !makeflags)
+
+build() {
+if [[ $_compiler = "1" ]]; then
+  export CC="gcc -m64"
+  export CXX="g++ -m64"
+elif [[ $_compiler = "2" ]]; then
+  export CC="clang -m64"
+  export CXX="clang++ -m64"
+else
+  export CC="gcc -m64"
+  export CXX="g++ -m64"
+fi
+
+  cd findlib-$pkgver
+  ./configure \
+    -sitelib /usr/lib/ocaml \
+    -config /etc/findlib.conf \
+    -mandir /usr/share/man
+  make -j$(nproc) all opt
+}
+
+package () {
+  cd findlib-$pkgver
+  make prefix="$pkgdir" install
+  install -Dm755 src/findlib/ocamlfind_opt "$pkgdir/usr/bin/ocamlfind_opt"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

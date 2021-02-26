@@ -1,0 +1,100 @@
+#Maintainer: kevall474 <kevall474@tuta.io> <https://github.com/kevall474>
+#Credits: Jürgen Hötzel <juergen@archlinux.org>
+
+#######################################
+
+#Set compiler to build spirv package
+#Set '1' to build with GCC
+#Set '2' to build with CLANG
+#Default is empty. It will build with GCC. To build with different compiler just use : env _compiler=(1 or 2) makepkg -s
+if [ -z ${_compiler+x} ]; then
+  _compiler=
+fi
+
+#######################################
+
+pkgbase=ocaml-git
+pkgname=("$pkgbase" 'ocaml-compiler-libs-git')
+pkgver=4.13.0
+pkgrel=1
+arch=('x86_64')
+license=('LGPL2.1' 'custom: QPL-1.0')
+url="https://caml.inria.fr/"
+makedepends=('ncurses>=5.6-7')
+optdepends=('ncurses: advanced ncurses features' 'tk: advanced tk features')
+source=('ocaml::git+https://github.com/ocaml/ocaml.git'
+        'LICENSE')
+md5sums=('SKIP'
+         'SKIP')
+options=('!makeflags' '!emptydirs' 'staticlibs')
+
+pkgver(){
+  cd ocaml
+  echo ${pkgver}.$(git rev-list --count HEAD).$(git rev-parse --short HEAD)
+}
+
+build(){
+if [[ $_compiler = "1" ]]; then
+  export CC="gcc -m64"
+  export CXX="g++ -m64"
+elif [[ $_compiler = "2" ]]; then
+  export CC="clang -m64"
+  export CXX="clang++ -m64"
+else
+  export CC="gcc -m64"
+  export CXX="g++ -m64"
+fi
+
+  cd ocaml
+
+  ./configure --prefix /usr --mandir /usr/share/man --disable-force-safe-string
+
+  #make -j$(nproc) --debug=v world.opt
+
+  make -j$(nproc) world.opt
+
+  #make -j$(nproc)
+}
+
+package_ocaml-git(){
+  pkgdesc="A functional language with OO extensions"
+  conflicts=('ocaml')
+  provides=('ocaml')
+
+  cd ocaml
+
+  make DESTDIR="${pkgdir}" install
+
+  # Save >10MB with this one, makepkg only strips debug symbols.
+  #find "${pkgdir}/usr/lib" -type f -name '*.so.*' -exec strip --strip-unneeded {} \;
+
+  # remove compiler libs
+  rm -rf "${pkgdir}/usr/lib/ocaml/compiler-libs"
+
+  # install licence
+  install -Dt "$pkgdir"/usr/share/licenses/"$pkgname" -m644 LICENSE
+}
+
+package_ocaml-compiler-libs-git(){
+  pkgdesc="Several modules used internally by the OCaml compiler"
+  depends=('ocaml')
+  conflicts=('ocaml-compiler-libs')
+  provides=('ocaml-compiler-libs')
+
+  cd ocaml
+
+  make DESTDIR="${pkgdir}" install
+
+  # Remove non-compiler-libs
+  rm -rf "${pkgdir}/usr/bin" \
+         "${pkgdir}/usr/lib/ocaml/caml" \
+         "${pkgdir}/usr/lib/ocaml/ocamldoc" \
+         "${pkgdir}/usr/lib/ocaml/stublibs" \
+         "${pkgdir}/usr/lib/ocaml/threads" \
+         "${pkgdir}/usr/share"
+
+  find "${pkgdir}/usr/lib/ocaml/" -maxdepth 1 -type f -delete
+
+  # install licence
+  install -Dt "$pkgdir"/usr/share/licenses/"$pkgname" -m644 LICENSE
+}
