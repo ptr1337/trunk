@@ -1,0 +1,56 @@
+#Maintainer: kevall474 <kevall474@tuta.io> <https://github.com/kevall474>
+#Credits: Evangelos Foutras <evangelos@foutrelis.com>
+#Credits: Jan "heftig" Steffens <jan.steffens@gmail.com>
+
+pkgname=lld-rc
+pkgver=12.0.0rc2
+versiontag=12.0.0-rc2
+pkgrel=1
+pkgdesc="Linker from the LLVM project"
+arch=('x86_64')
+url="https://lld.llvm.org/"
+license=('custom:Apache 2.0 with LLVM Exception')
+depends=('llvm-libs')
+makedepends=('llvm' 'cmake' 'ninja' 'python-sphinx')
+conflicts=('lld')
+provides=('lld')
+source=("https://github.com/llvm/llvm-project/releases/download/llvmorg-$versiontag/llvm-project-$pkgver.src.tar.xz")
+md5sums=('SKIP')
+
+build() {
+
+  cd llvm-project-$pkgver.src/lld
+
+  if dir build; then
+    rm -rf build
+  fi
+
+  cmake -H. -G Ninja -Bbuild \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_INSTALL_PREFIX=/usr \
+  -DPYTHON_EXECUTABLE=/usr/bin/python \
+  -DLLVM_LINK_LLVM_DYLIB=ON \
+  -DLLVM_INCLUDE_TESTS=ON \
+  -DLLVM_BUILD_TESTS=OFF \
+  -DLLVM_BUILD_DOCS=ON \
+  -DLLVM_ENABLE_SPHINX=ON \
+  -DLLVM_EXTERNAL_LIT=/usr/bin/lit \
+  -DLLVM_MAIN_SRC_DIR="$srcdir/llvm-project-$pkgver.src/llvm"
+
+  ninja -C build
+}
+
+package(){
+
+  cd llvm-project-$pkgver.src/lld
+
+  DESTDIR="$pkgdir" ninja -C build install
+
+  install -Dm644 LICENSE.TXT "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+
+  # https://bugs.llvm.org/show_bug.cgi?id=42455
+  install -Dm644 -t "$pkgdir/usr/share/man/man1" docs/ld.lld.1
+
+  # Remove documentation sources
+  rm -r "$pkgdir"/usr/share/doc/lld/html/{_sources,.buildinfo}
+}
