@@ -41,11 +41,11 @@ build() {
   -DLLVM_ENABLE_DOXYGEN=OFF \
   -DSPHINX_WARNINGS_AS_ERRORS=OFF \
   -DLLVM_BINUTILS_INCDIR=/usr/include
-  #-DLLVM_ENABLE_PROJECTS="mlir"
+  -DLLVM_ENABLE_PROJECTS="mlir"
 
   ninja -C build all
   ninja -C build ocaml_doc
-  #ninja -C build mlir-doc
+  ninja -C build mlir-doc
   #ninja -C build flang-doc
 }
 
@@ -87,25 +87,25 @@ package_llvm-rc() {
 
   # move everything provided by mlir to a separate package
 
-  #rm -rf "$srcdir"/mlir.{lib,cmake,bin} \
-  #       "$srcdir"/mlir \
-  #       "$srcdir"/mlir-c
+  rm -rf "$srcdir"/mlir.{lib,cmake,bin} \
+         "$srcdir"/mlir \
+         "$srcdir"/mlir-c
 
   # move mlir lib to a separate package
-  #mkdir "$srcdir/mlir.lib"
-  #mv  "$pkgdir"/usr/lib/{*libMLIR*,*libmlir*} "$srcdir/mlir.lib"
+  mkdir "$srcdir/mlir.lib"
+  mv  "$pkgdir"/usr/lib/{*libMLIR*,*libmlir*} "$srcdir/mlir.lib"
 
   # move lib/cmake/mlir to a separate package
-  #mkdir "$srcdir/mlir.cmake"
-  #mv "$pkgdir"/usr/lib/cmake/mlir  "$srcdir/mlir.cmake"
+  mkdir "$srcdir/mlir.cmake"
+  mv "$pkgdir"/usr/lib/cmake/mlir  "$srcdir/mlir.cmake"
 
   # move mlir binary to a separate package
-  #mkdir "$srcdir/mlir.bin"
-  #mv "$pkgdir"/usr/bin/*mlir*  "$srcdir/mlir.bin"
+  mkdir "$srcdir/mlir.bin"
+  mv "$pkgdir"/usr/bin/*mlir*  "$srcdir/mlir.bin"
 
   # move mlir include to a separate package
-  #mv "$pkgdir"/usr/include/mlir  "$srcdir"
-  #mv "$pkgdir"/usr/include/mlir-c  "$srcdir"
+  mv "$pkgdir"/usr/include/mlir  "$srcdir"
+  mv "$pkgdir"/usr/include/mlir-c  "$srcdir"
 }
 
 package_llvm-libs-rc() {
