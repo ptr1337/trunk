@@ -144,7 +144,7 @@ package_llvm-ocaml-rc() {
 package_mlir-rc(){
   pkgdesc="Multi-Level Intermediate Representation"
   depends=('llvm' 'llvm-libs') # if somebody have depends recommendation feel free to make a pull request
-  provides=('mlir' 'mlir-git')
+  provides=('mlir')
 
   install -d "$pkgdir"/{usr/lib,usr/include,usr/bin}
 
