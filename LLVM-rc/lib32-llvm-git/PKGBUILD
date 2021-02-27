@@ -146,7 +146,7 @@ package_lib32-llvm-libs-git() {
 package_lib32-mlir-git(){
   pkgdesc="Multi-Level Intermediate Representation (32-bit)"
   depends=('lib32-llvm' 'lib32-llvm-libs' 'mlir') # if somebody have depends recommendation feel free to make a pull request
-  provides=('lib32-mlir' 'lib32-mlir-git')
+  provides=('lib32-mlir')
 
   install -d "$pkgdir"/usr/lib32
 
