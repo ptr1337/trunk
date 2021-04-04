@@ -11,53 +11,41 @@
 # toolchain build order: linux-api-headers->glibc->binutils->gcc->binutils->glibc
 # NOTE: valgrind requires rebuilt with each major glibc version
 
-pkgbase=glibc-git
-pkgname=('glibc-git' 'lib32-glibc-git')
+pkgbase=glibc
+pkgname=(glibc lib32-glibc)
 pkgver=2.33.9000
-pkgrel=1
+pkgrel=4
 arch=(x86_64)
 url='https://www.gnu.org/software/libc'
 license=(GPL LGPL)
-makedepends=('git' 'gd' 'lib32-gcc-libs' 'python')
+makedepends=(git gd lib32-gcc-libs python)
 optdepends=('perl: for mtrace')
 options=(!strip staticlibs)
-source=('git+https://sourceware.org/git/glibc.git'
-        'locale.gen.txt'
-        'locale-gen'
-        'lib32-glibc.conf'
-        'sdt.h'
-        'sdt-config.h')
-        #'bz26534.patch')
+_commit=9acda61d94acc5348c2330f2519a14d1a4a37e73
+source=(git+https://sourceware.org/git/glibc.git#commit=$_commit
+        locale.gen.txt
+        locale-gen
+        lib32-glibc.conf
+        sdt.h sdt-config.h)
+
+validpgpkeys=(7273542B39962DF7B299931416792B4EA25340F8 # Carlos O'Donell
+              BC7C7372637EC10C57D7AA6579C43DFBF1CF2187) # Siddhesh Poyarekar
 md5sums=('SKIP'
-         'SKIP'
-         'SKIP'
-         'SKIP'
-         'SKIP'
-         'SKIP')
-         #'SKIP')
+         '07ac979b6ab5eeb778d55f041529d623'
+         '476e9113489f93b348b21e144b6a8fcf'
+         '6e052f1cb693d5d3203f50f9d4e8c33b'
+         '91fec3b7e75510ae2ac42533aa2e695e'
+         '680df504c683640b02ed4a805797c0b2')
 
-pkgver(){
- cd glibc
- echo 2.33.9000.$(git rev-list --count HEAD).$(git rev-parse --short HEAD)
-}
-
-prepare(){
+prepare() {
   mkdir -p glibc-build lib32-glibc-build
 
   [[ -d glibc-$pkgver ]] && ln -s glibc-$pkgver glibc
   cd glibc
 
-  local i; for i in ${source[@]}; do
-    case ${i%::*} in
-      *.patch)
-        echo "  -> Applying ${i}"
-        patch -p1 -i "$srcdir/${i}"
-        ;;
-    esac
-  done
 }
 
-build(){
+build() {
   local _configure_flags=(
       --prefix=/usr
       --with-headers=/usr/include
@@ -98,17 +86,17 @@ build(){
 
   # build libraries with fortify disabled
   echo "build-programs=no" >> configparms
-  make -j$(nproc)
+  make
 
   # re-enable fortify for programs
   sed -i "/build-programs=/s#no#yes#" configparms
 
   echo "CC += -D_FORTIFY_SOURCE=2" >> configparms
   echo "CXX += -D_FORTIFY_SOURCE=2" >> configparms
-  make -j$(nproc)
+  make
 
   # build info pages manually for reprducibility
-  make -j$(nproc) info
+  make info
 
   cd "$srcdir/lib32-glibc-build"
   export CC="gcc -m32 -mstackrealign"
@@ -132,44 +120,40 @@ build(){
 
   # build libraries with fortify disabled
   echo "build-programs=no" >> configparms
-  make -j$(nproc)
+  make
 
   # re-enable fortify for programs
   sed -i "/build-programs=/s#no#yes#" configparms
 
   echo "CC += -D_FORTIFY_SOURCE=2" >> configparms
   echo "CXX += -D_FORTIFY_SOURCE=2" >> configparms
-  make -j$(nproc)
+  make
 
 }
 
-# skip check for fast compiling
-
-check(){
+check() {
   cd glibc-build
 
   # remove fortify in preparation to run test-suite
   sed -i '/FORTIFY/d' configparms
 
   # some failures are "expected"
-  make -j$(nproc) check || true
+  make check || true
 }
 
-package_glibc-git() {
+package_glibc() {
   pkgdesc='GNU C Library'
-  depends=('linux-api-headers>=4.10' 'tzdata' 'filesystem')
+  depends=('linux-api-headers>=4.10' tzdata filesystem)
   optdepends=('gd: for memusagestat')
   install=glibc.install
   backup=(etc/gai.conf
           etc/locale.gen
           etc/nscd.conf)
-  conflicts=('glibc')
-  provides=("glibc=$pkgver" "glibc")
 
   install -dm755 "$pkgdir/etc"
   touch "$pkgdir/etc/ld.so.conf"
 
-  make -j$(nproc) -C glibc-build install_root="$pkgdir" install
+  make -C glibc-build install_root="$pkgdir" install
   rm -f "$pkgdir"/etc/ld.so.{cache,conf}
 
   # Shipped in tzdata
@@ -214,16 +198,14 @@ package_glibc-git() {
   rm -f "$pkgdir"/usr/include/crypt.h "$pkgdir"/usr/lib/libcrypt.{a,so}
 }
 
-package_lib32-glibc-git(){
+package_lib32-glibc() {
   pkgdesc='GNU C Library (32-bit)'
   depends=("glibc=$pkgver")
   options+=('!emptydirs')
-  conflicts=('lib32-glibc')
-  provides=("lib32-glibc=$pkgver" "lib32-glibc")
 
   cd lib32-glibc-build
 
-  make -j$(nproc) install_root="$pkgdir" install
+  make install_root="$pkgdir" install
   rm -rf "$pkgdir"/{etc,sbin,usr/{bin,sbin,share},var}
 
   # We need to keep 32 bit specific header files
@@ -236,19 +218,20 @@ package_lib32-glibc-git(){
   # Add lib32 paths to the default library search path
   install -Dm644 "$srcdir/lib32-glibc.conf" "$pkgdir/etc/ld.so.conf.d/lib32-glibc.conf"
 
-  # Symlink /usr/lib32/locale to /usr/lib/locale
-  ln -s ../lib/locale "$pkgdir/usr/lib32/locale"
 
-  if check_option 'debug' n; then
-    find "$pkgdir"/usr/lib32 -name '*.a' -type f -exec strip $STRIP_STATIC {} + 2> /dev/null || true
-    find "$pkgdir"/usr/lib32 \
-      -not -name 'ld-*.so' \
-      -not -name 'libc-*.so' \
-      -not -name 'libpthread-*.so' \
-      -not -name 'libthread_db-*.so' \
-      -name '*-*.so' -type f -exec strip $STRIP_SHARED {} + 2> /dev/null || true
-  fi
+    # Symlink /usr/lib32/locale to /usr/lib/locale
+    ln -s ../lib/locale "$pkgdir/usr/lib32/locale"
 
-  # Provided by lib32-libxcrypt; keep the old shared library for backwards compatibility
-  rm -f "$pkgdir"/usr/lib32/libcrypt.{a,so}
-}
+    if check_option 'debug' n; then
+      find "$pkgdir"/usr/lib32 -name '*.a' -type f -exec strip $STRIP_STATIC {} + 2> /dev/null || true
+      find "$pkgdir"/usr/lib32 \
+        -not -name 'ld-*.so' \
+        -not -name 'libc-*.so' \
+        -not -name 'libpthread-*.so' \
+        -not -name 'libthread_db-*.so' \
+        -name '*-*.so' -type f -exec strip $STRIP_SHARED {} + 2> /dev/null || true
+    fi
+
+    # Provided by lib32-libxcrypt; keep the old shared library for backwards compatibility
+    rm -f "$pkgdir"/usr/lib32/libcrypt.{a,so}
+  }
