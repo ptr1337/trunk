@@ -11,8 +11,8 @@
 # toolchain build order: linux-api-headers->glibc->binutils->gcc->binutils->glibc
 # NOTE: valgrind requires rebuilt with each major glibc version
 
-pkgbase=glibc
-pkgname=(glibc lib32-glibc)
+pkgbase=glibc-git
+pkgname=(glibc-git lib32-glibc-git)
 pkgver=2.33.9000
 pkgrel=4
 arch=(x86_64)
@@ -86,17 +86,17 @@ build() {
 
   # build libraries with fortify disabled
   echo "build-programs=no" >> configparms
-  make
+  make -j$(nproc)
 
   # re-enable fortify for programs
   sed -i "/build-programs=/s#no#yes#" configparms
 
   echo "CC += -D_FORTIFY_SOURCE=2" >> configparms
   echo "CXX += -D_FORTIFY_SOURCE=2" >> configparms
-  make
+  make -j$(nproc)
 
   # build info pages manually for reprducibility
-  make info
+  make -j$(nproc) info
 
   cd "$srcdir/lib32-glibc-build"
   export CC="gcc -m32 -mstackrealign"
@@ -120,14 +120,14 @@ build() {
 
   # build libraries with fortify disabled
   echo "build-programs=no" >> configparms
-  make
+  make -j$(nproc)
 
   # re-enable fortify for programs
   sed -i "/build-programs=/s#no#yes#" configparms
 
   echo "CC += -D_FORTIFY_SOURCE=2" >> configparms
   echo "CXX += -D_FORTIFY_SOURCE=2" >> configparms
-  make
+  make -j$(nproc)
 
 }
 
@@ -138,7 +138,7 @@ check() {
   sed -i '/FORTIFY/d' configparms
 
   # some failures are "expected"
-  make check || true
+  make -j$(nproc) check || true
 }
 
 package_glibc() {
@@ -153,7 +153,7 @@ package_glibc() {
   install -dm755 "$pkgdir/etc"
   touch "$pkgdir/etc/ld.so.conf"
 
-  make -C glibc-build install_root="$pkgdir" install
+  make -j$(nproc) -C glibc-build install_root="$pkgdir" install
   rm -f "$pkgdir"/etc/ld.so.{cache,conf}
 
   # Shipped in tzdata
@@ -205,7 +205,7 @@ package_lib32-glibc() {
 
   cd lib32-glibc-build
 
-  make install_root="$pkgdir" install
+  make -j$(nproc) install_root="$pkgdir" install
   rm -rf "$pkgdir"/{etc,sbin,usr/{bin,sbin,share},var}
 
   # We need to keep 32 bit specific header files
